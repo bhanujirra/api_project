@@ -1,38 +1,61 @@
 from playwright.sync_api import sync_playwright
+import asyncio
+import sys
+from fastapi import HTTPException
 
+if sys.platform.startswith('win'):
+    asyncio.set_event_loop_policy(asyncio.WindowsProactorEventLoopPolicy())
 
+def is_table_empty(page, table_selector) -> bool:
+   
+    if not table_selector.count():
+        return True
+    
+    # Check for any visible rows in tbody (more efficient than counting all rows)
+    has_rows = table_selector.locator("tbody tr").count()
+    return not has_rows 
+
+def login_to_mri(page, username, password):
+    page.goto("https://ts.meeseva.telangana.gov.in/meeseva/login.htm")
+    user_name = page.locator("#j_username")
+    user_name.click()
+    user_name.press_sequentially(username) #Enter the username
+    pass_word = page.locator("#password")
+    pass_word.click()
+    pass_word.press_sequentially(password) #Enter the password
+    button = page.get_by_role("button", name="Login")
+    button.click()
 
 def auto_mri(usernam_e, passwor_d):
     with sync_playwright() as playwright:
-        browser = playwright.chromium.launch(headless=True)
+        browser = playwright.chromium.launch(headless=False, slow_mo = 100)
         context = browser.new_context(
             permissions=["geolocation"]  # Denying geolocation permissions
         )
 
         page = context.new_page()
-
-        page.goto("https://ts.meeseva.telangana.gov.in/meeseva/login.htm")
+        login_to_mri(page, usernam_e, passwor_d)
         page.wait_for_load_state("load")
-        
-        user_name = page.locator("#j_username")
-        user_name.click()
-        user_name.press_sequentially(usernam_e) #Enter the username
-        pass_word = page.locator("#password")
-        pass_word.click()
-        pass_word.press_sequentially(passwor_d) #Enter the password
-        button = page.get_by_role("button", name="Login")
-        button.click()
+        try:
+            page.locator("#repaeaterdata_A1_0").click() #application processing
+        except HTTPException as e:
+            print("Error Logging in: ", e)
+            raise HTTPException(status_code=500, detail="Invalid Credentials")
+        page.wait_for_load_state("load")
+        page.locator("#Repeater1_a1_1").click() #community
+        page.wait_for_load_state("load")
+        page.locator("#cmbProblemStatus").select_option(value="14") #selecting the authority
+        print("Authority selected!")
+        page.locator("#btnSearch").click() #search
+        print("Search button clicked!")
 
         page.wait_for_load_state("load")
-        page.locator("xpath= //*[@id='repaeaterdata_A1_0']").click() #application processing
-        page.locator("xpath= //*[@id='Repeater1_a1_1']").click() #community
-        page.locator("xpath=//*[@id='cmbProblemStatus']").select_option(value="14") #selecting the authority
-        page.locator("xpath = //*[@id='btnSearch']").click() #search
+        table = page.locator("#gvCustomers")
 
-        table = page.locator("//html/body/form/main/div/div[2]/div[2]/div[2]/div/div/div/div[2]/div/table") 
         rows = table.locator("tbody tr").count()
+        print("Number of rows in the table: " + str(rows))
         i = 1
-        while rows != 0:
+        while not is_table_empty(page, table):
             
             link_locator = table.locator("tbody tr:nth-child(1) td:nth-child(2) a")
             link_locator.click()
@@ -48,30 +71,29 @@ def auto_mri(usernam_e, passwor_d):
             print("Date of Birth field cleared!" + str(i))
             i += 1
             with page.expect_popup() as new_page_info:
-                page.locator("xpath = //*[@id='lnlCheckList']").click() #checklist 
+                page.locator("#lnlCheckList").click() #checklist 
 
             new_page = new_page_info.value  # Get the new page reference
             new_page.wait_for_load_state("load")  # Wait for the new page to fully load
 
             
-            new_page.locator("xpath = //*[@id='ddlconduct']").select_option(value = "Yes") 
-            new_page.locator("xpath = //*[@id='txtSanction']").fill("Yes") 
-            new_page.locator("xpath = //*[@id='txtRecordSt']").fill("Yes")
-            new_page.locator("xpath = //*[@id='txtMediator']").fill("Yes") 
-            new_page.locator("xpath = //*[@id='ddlRecommVRO']").select_option(value = "Recommonded") 
-            new_page.locator("xpath = //*[@id='txtVerificationVRO']").fill("Yes") 
-            new_page.locator("xpath = //*[@id='txtVeriRPA']").fill("Yes") 
-            new_page.locator("xpath = //*[@id='ddlRecommRI']").select_option(value = "Recommonded")
+            new_page.locator("#ddlconduct").select_option(value = "Yes") 
+            new_page.locator("#txtSanction").fill("Yes") 
+            new_page.locator("#txtRecordSt").fill("Yes")
+            new_page.locator("#txtMediator").fill("Yes") 
+            new_page.locator("#ddlRecommVRO").select_option(value = "Recommonded") 
+            new_page.locator("#txtVerificationVRO").fill("Yes") 
+            new_page.locator("#txtVeriRPA").fill("Yes") 
+            new_page.locator("#ddlRecommRI").select_option(value = "Recommonded")
 
             new_page.click("#btnSubmit")  # Submit the form
             new_page.wait_for_load_state("load")  # Wait for the response
             new_page.close()  # Close the current tab
             
-            page.locator("xpath = //*[@id='txtMRIRemarks']").fill("recommended                                                              ")
+            page.locator("#txtMRIRemarks").fill("recommended                                                              ")
             page.click("#btnFwdDYMRO")  # Click the button using its ID
             page.wait_for_load_state("load")  # Wait for submission to complete
-            page.locator("xpath = //*[@id='btnBack']").click()  # Go back to the previous page
+            page.locator("#btnBack").click()  # Go back to the previous page
             page.wait_for_load_state("load")  # Wait for the page to load
-            rows = table.locator("tbody tr").count()
-        page.wait_for_timeout(1000)
+        page.wait_for_timeout(50)
         browser.close()
