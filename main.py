@@ -1,8 +1,9 @@
 from fastapi import FastAPI, HTTPException
 from pydantic import BaseModel
-from starlette.responses import Response
+from fastapi.responses import JSONResponse
 from services import service
 from fastapi.middleware.cors import CORSMiddleware
+from starlette.requests import Request
 
 origins = ["http://localhost:3000"]
 
@@ -34,3 +35,11 @@ def post_user(credentials: UserCredentials):
     service.auto_mri(username, password)
     return {"message": "forwarded from mri login efficiently"}
     # page.locator("xpath = //*[@id='btnSave']").click() #save
+
+
+# @app.exception_handler(CustomException)
+# def custom_exception_handler(request: Request, exc: CustomException):
+#     return JSONResponse(
+#         status_code=404,
+#         content={"message": f"Invalid credentials"},
+#     )

@@ -25,7 +25,14 @@ def login_to_mri(page, username, password):
     pass_word.press_sequentially(password) #Enter the password
     button = page.get_by_role("button", name="Login")
     button.click()
-
+    error_message = page.locator("#msgError")
+    print("Error message: ", error_message.inner_text())
+    if error_message.is_visible(timeout = 200):
+        print("Invalid Credentials")
+        raise HTTPException(status_code=401, detail=error_message.inner_text())
+    else:
+        print("Login successful!")
+    return page
 def auto_mri(usernam_e, passwor_d):
     with sync_playwright() as playwright:
         browser = playwright.chromium.launch(headless=False, slow_mo = 100)
@@ -34,13 +41,9 @@ def auto_mri(usernam_e, passwor_d):
         )
 
         page = context.new_page()
-        login_to_mri(page, usernam_e, passwor_d)
+        page = login_to_mri(page, usernam_e, passwor_d)
         page.wait_for_load_state("load")
-        try:
-            page.locator("#repaeaterdata_A1_0").click() #application processing
-        except HTTPException as e:
-            print("Error Logging in: ", e)
-            raise HTTPException(status_code=500, detail="Invalid Credentials")
+        page.locator("#repaeaterdata_A1_0").click() #application processing
         page.wait_for_load_state("load")
         page.locator("#Repeater1_a1_1").click() #community
         page.wait_for_load_state("load")
@@ -55,7 +58,7 @@ def auto_mri(usernam_e, passwor_d):
         rows = table.locator("tbody tr").count()
         print("Number of rows in the table: " + str(rows))
         i = 1
-        while not is_table_empty(page, table):
+        while not is_table_empty(table):
             
             link_locator = table.locator("tbody tr:nth-child(1) td:nth-child(2) a")
             link_locator.click()
