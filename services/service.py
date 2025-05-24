@@ -14,7 +14,7 @@ def is_table_empty(table_selector) -> bool:
     return not has_rows 
 
 def login_to_mri(page, username, password):
-    page.goto("https://ts.meeseva.telangana.gov.in/meeseva/login.htm")
+    page.goto("https://ts.meeseva.telangana.gov.in/meeseva/login.htm", timeout = 10000)
     user_name = page.locator("#j_username")
     user_name.click()
     user_name.press_sequentially(username) #Enter the username
