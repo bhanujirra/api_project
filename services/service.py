@@ -4,8 +4,8 @@ import asyncio
 import sys
 from fastapi import HTTPException
 
-# if sys.platform.startswith('win'):
-#     asyncio.set_event_loop_policy(asyncio.WindowsProactorEventLoopPolicy())
+if sys.platform.startswith('win'):
+    asyncio.set_event_loop_policy(asyncio.WindowsProactorEventLoopPolicy())
 
 def is_table_empty(table_selector) -> bool:
    
@@ -37,7 +37,7 @@ def login_to_mri(page, username, password):
 
 def auto_mri(usernam_e, passwor_d):
     with sync_playwright() as playwright:
-        browser = playwright.chromium.launch(headless=False, slow_mo = 300)
+        browser = playwright.chromium.launch(headless=False, slow_mo=300)
         context = browser.new_context(
             permissions=["geolocation"]  # Denying geolocation permissions
         )
