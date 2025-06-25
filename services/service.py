@@ -37,7 +37,7 @@ def login_to_mri(page, username, password):
 
 def auto_mri(usernam_e, passwor_d):
     with sync_playwright() as playwright:
-        browser = playwright.chromium.launch(headless=False, slow_mo=300)
+        browser = playwright.chromium.launch(headless=True)
         context = browser.new_context(
             permissions=["geolocation"]  # Denying geolocation permissions
         )
