@@ -17,7 +17,11 @@ def is_table_empty(table_selector) -> bool:
     return not has_rows 
 
 def login_to_mri(page, username, password):
-    page.goto("https://ts.meeseva.telangana.gov.in/meeseva/login.htm")
+    page.goto(
+            "https://ts.meeseva.telangana.gov.in/meeseva/login.htm",
+            wait_until="domcontentloaded",
+            timeout=60000
+        )
     user_name = page.locator("#j_username")
     user_name.click()
     user_name.press_sequentially(username) #Enter the username
@@ -37,7 +41,7 @@ def login_to_mri(page, username, password):
 
 def auto_mri(usernam_e, passwor_d):
     with sync_playwright() as playwright:
-        browser = playwright.chromium.launch(headless=True)
+        browser = playwright.chromium.launch(headless=True, args=["--no-sandbox"])  # Launch the browser
         context = browser.new_context(
             permissions=["geolocation"]  # Denying geolocation permissions
         )
